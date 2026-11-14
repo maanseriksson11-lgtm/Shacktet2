@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>Schaktet</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Barlow:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
 <style>
 /* Layout: the mine is the whole backdrop, drawn in chunky 4 px pixels. The lift hangs near the top, everything below it is dark, and the game panel sits in that darkness. */
 :root{
@@ -13,7 +13,8 @@
   --berg:#0C0D10; --hall:#1F2227; --kant:#3A4049; --text:#EFE9DD; --dov:#A3A5A6;
   --falu:#A8321F; --falu-ljus:#D04A31; --knut:#F3EEE3; --lampa:#FFC233; --mossa:#4B5B33; --tak:#2A2320;
   --grasten:#8C9197; --jarn:#5F7FA1; --koppar:#DD8347; --silver:#D8DFE6; --guld:#F4C22B; --yttrium:#74E6D8;
-  --display:"Pixelify Sans","Courier New",monospace;
+  --display:"Barlow Condensed","Roboto Condensed","Arial Narrow",system-ui,sans-serif;
+  --stal:#4B5159; --plat:#23272C;
   --body:"Barlow","Segoe UI",system-ui,sans-serif;
 }
 *{box-sizing:border-box}
@@ -118,6 +119,45 @@ input[type=text]{flex:1;min-width:0;font:inherit;font-size:16px;padding:8px 10px
 @keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 .shake{animation:shake .2s steps(2) 2}
 @media (prefers-reduced-motion:reduce){.cage,.cable,.world{transition:none}.shake,.riding .shaker,.riding .streaks,.thud .shaker{animation:none}}
+
+/* skin: painted steel signs with rivets and a hazard stripe, set in a clear condensed sign face */
+.mark{font-size:32px;letter-spacing:.06em;text-shadow:0 2px 0 #000}
+.meta{right:104px;top:calc(17px + env(safe-area-inset-top,0px));font-size:16px;letter-spacing:.04em;text-shadow:0 1px 0 #000}
+.mute{position:absolute;right:16px;top:calc(10px + env(safe-area-inset-top,0px));pointer-events:auto;font-size:14px;padding:5px 9px;min-width:76px;background:rgba(8,9,10,.75);border:2px solid var(--stal);color:var(--text);box-shadow:none}
+.hud{font-size:46px;text-shadow:0 2px 0 #000}
+.mk,.zn{font-size:15px;font-weight:600;letter-spacing:.04em;text-shadow:0 1px 0 #000,0 0 4px #000}
+.stamp{font-size:46px;letter-spacing:.06em;text-shadow:0 3px 0 #000}
+.clock{border:3px solid var(--stal);box-shadow:0 0 0 2px #0A0B0D,0 4px 10px rgba(0,0,0,.6)}
+.clock span{font-size:30px}
+h1{font-size:clamp(28px,7.6vw,36px);letter-spacing:.02em}
+h2{font-size:clamp(22px,5.6vw,27px);font-weight:600}
+.label{font-size:14px;font-weight:600;letter-spacing:.12em}
+.main{background:linear-gradient(#272B31,#1B1E23);border:2px solid var(--stal);border-radius:6px;box-shadow:0 10px 28px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.07);padding:28px 18px 18px;overflow:hidden}
+.main::before{content:"";position:absolute;inset:0 0 auto 0;height:10px;background:repeating-linear-gradient(-45deg,var(--lampa) 0 12px,#15171A 12px 24px)}
+.main::after{content:"";position:absolute;inset:15px 5px 5px;pointer-events:none;--riv:radial-gradient(circle,#8A919A 0 2px,#0D0E10 2.4px 3.4px,transparent 3.6px);
+  background:var(--riv) left top/8px 8px no-repeat,var(--riv) right top/8px 8px no-repeat,var(--riv) left bottom/8px 8px no-repeat,var(--riv) right bottom/8px 8px no-repeat}
+button{font-size:19px;letter-spacing:.06em;text-transform:uppercase;border-radius:4px;box-shadow:0 3px 0 #000;padding:12px 16px}
+.primary{border:2px solid var(--knut);background:linear-gradient(var(--falu-ljus),var(--falu))}
+.ghost{border:2px solid var(--stal);background:#2C3137}
+button:active{transform:translateY(2px);box-shadow:0 1px 0 #000}
+form button{font-size:17px;padding:8px 14px}
+input[type=text]{border:2px solid var(--stal);border-radius:4px;background:#0F1113;box-shadow:inset 0 2px 6px rgba(0,0,0,.7)}
+input[type=text]::placeholder{color:#8A9096}
+.gem{width:15px;height:17px;clip-path:polygon(50% 0,100% 35%,78% 100%,22% 100%,0 35%)}
+.g100{filter:drop-shadow(0 0 4px var(--yttrium))}
+.ores li,.recap li{border-bottom:1px solid #3A3F46}
+.recap{border-top:1px solid #3A3F46}
+.ores .m{font-size:21px}
+.recap .p{font-size:19px}
+.tried span{border:1px solid var(--stal);border-radius:3px}
+.fb{border:2px solid var(--kant);border-radius:4px;background:#14161A}
+.fb .gain{font-size:34px}
+.note.next{font-size:17px;letter-spacing:.04em}
+.recap summary{font-size:16px;letter-spacing:.04em}
+.tier{border-left:2px solid var(--stal)}
+.tier .th{font-size:14px;letter-spacing:.08em}
+.mark{pointer-events:auto;cursor:pointer}
+.mark:focus-visible{outline:3px solid var(--lampa);outline-offset:3px}
 </style>
 </head>
 <body>
@@ -130,7 +170,7 @@ input[type=text]{flex:1;min-width:0;font:inherit;font-size:16px;padding:8px 10px
     </div>
     <div class="flash" id="flash"></div>
     <div class="overlay">
-      <div class="mark">Schakt<b>et</b></div><div class="meta" id="meta"></div>
+      <div class="mark" id="home" role="button" tabindex="0" aria-label="Schaktet, till startmenyn">Schakt<b>et</b></div><div class="meta" id="meta"></div><button class="mute" id="mute" type="button"></button>
       <div class="stamp" id="stamp" aria-hidden="true"></div>
       <div class="hud"><span id="depth">0</span> <small>m</small></div>
       <div class="clock" id="clock" hidden><svg viewBox="0 0 64 64" aria-hidden="true" shape-rendering="crispEdges"><circle class="trk" cx="32" cy="32" r="27"/><circle class="arc" id="arc" cx="32" cy="32" r="27" transform="rotate(-90 32 32)"/></svg><span id="secs">30</span></div>
@@ -148,6 +188,7 @@ input[type=text]{flex:1;min-width:0;font:inherit;font-size:16px;padding:8px 10px
       <div class="row">
         <button class="primary" id="btnDaily">Dagens schakt</button>
         <button class="ghost" id="btnFree">Fritt schakt</button>
+        <button class="ghost" id="btnResume" hidden></button>
       </div>
       <p class="note next" id="nextA"></p>
       <p class="note" id="startNote">Dagens schakt har samma sju frågor för alla. Varje fråga har ett enda yttriumsvar, och efteråt får du veta varför. Botten ligger på 1 400 meter.</p>
@@ -409,11 +450,11 @@ function ride(to,pts){
   const id=++anim,t0=performance.now(),el=$('depth');
   clearTimeout(rideTimer); scene.classList.remove('thud','riding');
   if(!dur){el.textContent=fmt(to);return 0}
-  scene.classList.add('riding');
+  scene.classList.add('riding'); rideSound(dur);
   (function step(t){if(id!==anim)return;const k=Math.min(1,(t-t0)/(dur*1000)),e=k<.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;
     el.textContent=fmt(Math.round(from+(to-from)*e));if(k<1)requestAnimationFrame(step)})(t0);
   rideTimer=setTimeout(()=>{scene.classList.remove('riding');
-    if(pts){const t=tierOf(pts);$('flash').style.background='var(--'+t[3]+')';$('stamp').textContent=t[1]+'!';$('stamp').className='stamp c'+pts;
+    if(pts){thudSound(pts);const t=tierOf(pts);$('flash').style.background='var(--'+t[3]+')';$('stamp').textContent=t[1]+'!';$('stamp').className='stamp c'+pts;
       void scene.offsetWidth;scene.classList.add('thud')}},dur*1000);
   return dur;
 }
@@ -470,9 +511,45 @@ function drawCage(){
 }
 const world=$('world');
 for(let m=10;m<=BOTTOM;m+=10){const d=document.createElement('div');d.className='mk';d.style.top=yOf(m)+'px';d.textContent='– '+m+' m';world.append(d)}
-ZONES.forEach(z=>{const d=document.createElement('div');d.className='zn c'+z[2];d.style.top=(z[0]?yOf(z[0]):SURF+34)+'px';d.textContent=tierName(z[2]);world.append(d)});
+ZONES.forEach(z=>{const d=document.createElement('div');d.className='zn c'+z[2];d.style.top=(z[0]?yOf(z[0]):SURF+66)+'px';d.textContent=tierName(z[2]);world.append(d)});
 if(window.ResizeObserver)new ResizeObserver(()=>{drawWorld();setCam(cur,0)}).observe(scene);else addEventListener('resize',drawWorld);
 drawWorld();drawCage();setCam(0,0);
+
+/* sound: everything is synthesised in the browser, nothing is downloaded. It starts on the first tap, as browsers require. */
+const snd={ctx:null,out:null,nb:null,ride:null,on:true};
+try{snd.on=localStorage.getItem('schaktetLjud')!=='av'}catch(e){}
+let lastTick=0;
+function ac(){ if(!snd.on)return null;
+  try{ if(!snd.ctx){const A=window.AudioContext||window.webkitAudioContext;if(!A)return null;snd.ctx=new A();snd.out=snd.ctx.createGain();snd.out.gain.value=.55;snd.out.connect(snd.ctx.destination)}
+    if(snd.ctx.state==='suspended')snd.ctx.resume(); return snd.ctx }catch(e){return null} }
+function tone(f,at,dur,type,vol,f2){const c=ac();if(!c)return;const t=c.currentTime+at,o=c.createOscillator(),g=c.createGain();
+  o.type=type;o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+dur);
+  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+.012);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  o.connect(g);g.connect(snd.out);o.start(t);o.stop(t+dur+.05)}
+function noise(c){ if(!snd.nb){const b=c.createBuffer(1,c.sampleRate*2,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;snd.nb=b}
+  const n=c.createBufferSource();n.buffer=snd.nb;n.loop=true;return n}
+function stopRide(){ if(!snd.ride)return; snd.ride.src.forEach(x=>{try{x.stop()}catch(e){}}); try{snd.ride.g.disconnect()}catch(e){} snd.ride=null }
+function rideSound(dur){const c=ac();if(!c)return;stopRide();const t=c.currentTime,g=c.createGain();g.connect(snd.out);
+  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.55,t+dur*.3);g.gain.setValueAtTime(.55,t+dur*.72);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  const rum=noise(c),lp=c.createBiquadFilter();lp.type='lowpass';lp.frequency.setValueAtTime(110,t);lp.frequency.exponentialRampToValueAtTime(750,t+dur*.5);lp.frequency.exponentialRampToValueAtTime(130,t+dur);rum.connect(lp);lp.connect(g);
+  const mot=c.createOscillator(),mg=c.createGain();mot.type='sawtooth';mot.frequency.setValueAtTime(42,t);mot.frequency.exponentialRampToValueAtTime(125,t+dur*.5);mot.frequency.exponentialRampToValueAtTime(46,t+dur);mg.gain.value=.11;mot.connect(mg);mg.connect(g);
+  const rat=noise(c),bp=c.createBiquadFilter(),rg=c.createGain(),lfo=c.createOscillator(),lg=c.createGain();bp.type='bandpass';bp.frequency.value=2300;rg.gain.value=0;
+  lfo.type='square';lfo.frequency.setValueAtTime(5,t);lfo.frequency.linearRampToValueAtTime(24,t+dur*.5);lfo.frequency.linearRampToValueAtTime(5,t+dur);lg.gain.value=.06;
+  lfo.connect(lg);lg.connect(rg.gain);rat.connect(bp);bp.connect(rg);rg.connect(g);
+  const src=[rum,mot,rat,lfo];src.forEach(x=>{x.start(t);x.stop(t+dur+.1)});snd.ride={src,g}}
+function thudSound(pts){const c=ac();if(!c)return;tone(115,0,.38,'sine',.9,36);
+  const n=noise(c),g=c.createGain(),lp=c.createBiquadFilter(),t=c.currentTime;lp.type='lowpass';lp.frequency.value=520;g.gain.setValueAtTime(.5,t);g.gain.exponentialRampToValueAtTime(.0001,t+.28);n.connect(lp);lp.connect(g);g.connect(snd.out);n.start(t);n.stop(t+.3);
+  const i=TIERS.findIndex(x=>x[0]===pts);[523,659,784,988,1175,1568].slice(Math.max(0,i-2),i+1).forEach((f,k)=>tone(f,.14+k*.1,.55,'triangle',.2))}
+function missSound(){const c=ac();if(!c)return;tone(196,0,.2,'sawtooth',.32,150);tone(131,.2,.36,'sawtooth',.34,90);
+  const n=noise(c),g=c.createGain(),bp=c.createBiquadFilter(),t=c.currentTime;bp.type='bandpass';bp.frequency.value=900;g.gain.setValueAtTime(.35,t);g.gain.exponentialRampToValueAtTime(.0001,t+.12);n.connect(bp);bp.connect(g);g.connect(snd.out);n.start(t);n.stop(t+.15)}
+function timeoutSound(){tone(230,0,.55,'sawtooth',.1,62)}
+function tickSound(){tone(1500,0,.04,'square',.05)}
+function clickSound(){tone(320,0,.06,'triangle',.16,190)}
+function jump(m){anim++;clearTimeout(rideTimer);stopRide();scene.classList.remove('riding','thud');cur=m;setCam(m,0);$('depth').textContent=fmt(m)}
+function paintMute(){$('mute').textContent=snd.on?'Ljud på':'Ljud av';$('mute').setAttribute('aria-pressed',snd.on)}
+$('mute').onclick=()=>{snd.on=!snd.on;try{localStorage.setItem('schaktetLjud',snd.on?'pa':'av')}catch(e){}if(!snd.on)stopRide();paintMute()};
+document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('button'))clickSound()});
+paintMute();
 
 /* free rounds draw from a shuffled deck that refills itself, so there is always another one and no question repeats until all are used */
 function freeDeck(){
@@ -487,37 +564,38 @@ let S=null,tick=null;
 function show(id){['start','play','end'].forEach(v=>$(v).hidden=v!==id);$('clock').hidden=id!=='play';scrollTo(0,0)}
 function begin(mode){
   S={mode,day:dayKey,ids:mode==='daily'?dailyIds():freeDeck(),i:0,res:[],depth:0};
-  anim++; clearTimeout(rideTimer); scene.classList.remove('riding','thud'); cur=0; setCam(0,0); $('depth').textContent='0'; show('play'); ask();
+  jump(0); show('play'); ask();
 }
 function cart(){ $('cart').replaceChildren(...Array.from({length:7},(_,i)=>gem(S.res[i]?S.res[i].pts:0))) }
 function ask(){
   const q=BANK[S.ids[S.i]];
-  $('qn').textContent=S.i+1; $('question').textContent=q.q; cart();
+  saveProg(S.i); $('qn').textContent=S.i+1; $('question').textContent=q.q; cart();
   $('fb').hidden=true; $('btnNext').hidden=true; $('form').hidden=false; $('miss').textContent=''; $('tried').replaceChildren();
   const inp=$('answer'); inp.value=''; inp.focus();
   const end=Date.now()+SECONDS*1000; clearInterval(tick);
   tick=setInterval(()=>{const left=Math.max(0,end-Date.now());
     $('arc').style.strokeDashoffset=169.65*(1-left/(SECONDS*1000)); $('secs').textContent=Math.ceil(left/1000);
+    const sl=Math.ceil(left/1000); if(sl<=5&&sl>0&&sl!==lastTick){lastTick=sl;tickSound()}
     $('clock').classList.toggle('low',left<7000);
     if(left<=0) settle(null)},100);
 }
 function guess(raw){
   const q=BANK[S.ids[S.i]], hit=match(q,raw);
   if(hit) return settle(hit);
-  const inp=$('answer'); $('miss').textContent='Inget i berget där. Gissa igen, klockan går.';
+  const inp=$('answer'); missSound(); $('miss').textContent='Inget i berget där. Gissa igen, klockan går.';
   const t=document.createElement('span'); t.textContent=raw.trim(); $('tried').append(t);
-  inp.value=''; inp.classList.remove('shake'); void inp.offsetWidth; inp.classList.add('shake'); inp.focus();
+  inp.value=''; inp.focus();
 }
 function settle(hit){
   clearInterval(tick);
   const round=S, q=BANK[S.ids[S.i]], pts=hit?hit[1]:0;
-  S.depth+=pts*M; S.res.push({q:S.ids[S.i],ans:hit?hit[0]:'',pts});
+  S.depth+=pts*M; S.res.push({q:S.ids[S.i],ans:hit?hit[0]:'',pts}); saveProg(S.i+1);
   cart(); $('form').hidden=true; $('miss').textContent=''; $('tried').replaceChildren(); $('answer').blur();
-  const dur=ride(S.depth,pts);
+  if(!hit)timeoutSound(); const dur=ride(S.depth,pts);
   setTimeout(()=>{ if(S!==round) return;
     const sorted=[...q.a].sort((x,y)=>y[1]-x[1]);
     const common=sorted[sorted.length-1][0];
-    const fb=$('fb'); fb.replaceChildren(); fb.style.borderLeftColor=hit?'var(--'+tierOf(pts)[3]+')':'var(--kant)';
+    const fb=$('fb'); fb.replaceChildren(); fb.style.borderColor=hit?'var(--'+tierOf(pts)[3]+')':'var(--kant)';
     const gain=document.createElement('div'); gain.className='gain'+(hit?' c'+pts:'');
     gain.append((hit?'−'+pts*M:'0')+' m'); const lab=document.createElement('span'); lab.textContent=hit?tierName(pts):'Hissen står still'; gain.append(lab);
     const p1=document.createElement('p');
@@ -529,9 +607,9 @@ function settle(hit){
     const nx=$('btnNext'); nx.textContent=S.i===6?'Se hur djupt du kom':'Nästa fråga'; nx.hidden=false; nx.focus({preventScroll:true});
   },dur*1000+(dur?350:0));
 }
-function finish(){ if(S.mode==='daily') store.set({day:S.day,res:S.res,depth:S.depth}); refreshDaily(); renderEnd(S.mode,S.res,S.depth) }
+function finish(){ if(S.mode==='daily') store.set({day:S.day,res:S.res,depth:S.depth}); clearProg(S.mode); refreshDaily(); renderEnd(S.mode,S.res,S.depth) }
 function renderEnd(mode,res,depth){
-  show('end'); ride(depth);
+  show('end'); if(cur!==depth)jump(depth);
   $('endLabel').textContent=mode==='daily'?'Dagens schakt · '+dayLabel:'Fritt schakt';
   $('total').textContent=fmt(depth);
   $('zoneText').textContent=depth>=BOTTOM?'Du nådde schaktets botten. Djupare går det inte.':
@@ -566,14 +644,28 @@ $('form').addEventListener('submit',e=>{e.preventDefault();const v=$('answer').v
 $('btnNext').onclick=()=>{S.i++;S.i>6?finish():ask()};
 $('btnFree').onclick=$('btnAgain').onclick=()=>begin('free');
 function playedToday(){const s=store.get();return s&&s.day===dayKey&&Array.isArray(s.res)&&s.res.every(r=>BANK[r.q])?s:null}
-function refreshDaily(){const s=playedToday();$('meta').textContent=dayLabel;
-  $('btnDaily').textContent=s?'Visa dagens resultat':'Dagens schakt';
-  $('startNote').textContent=s?'Du har redan kört dagens schakt och nådde '+fmt(s.depth)+' meter. Fritt schakt slumpar nya frågor.':'Dagens schakt har samma sju frågor för alla. Varje fråga har ett enda yttriumsvar, och efteråt får du veta varför. Botten ligger på 1 400 meter.';
-  $('btnEndDaily').hidden=!!s}
+/* a round in progress is saved after every question, one slot for the daily shaft and one for the free one */
+function prog(){try{const p=JSON.parse(localStorage.getItem('schaktetPagar')||'{}');return p&&typeof p==='object'?p:{}}catch(e){return {}}}
+function putProg(p){try{localStorage.setItem('schaktetPagar',JSON.stringify(p))}catch(e){}}
+function saveProg(i){if(!S)return;const p=prog();p[S.mode]={mode:S.mode,day:S.day,ids:S.ids,i,res:S.res.slice(0,i),depth:S.res.slice(0,i).reduce((a,r)=>a+r.pts*M,0)};putProg(p)}
+function clearProg(mode){const p=prog();delete p[mode];putProg(p)}
+function getProg(mode){const p=prog()[mode];
+  if(!p||!Array.isArray(p.ids)||p.ids.length!==7||!p.ids.every(i=>BANK[i])||!Array.isArray(p.res)||!(p.i>=0)||p.res.length!==p.i)return null;
+  return mode==='daily'&&p.day!==dayKey?null:p}
+function resume(p){if(!p)return;S={mode:p.mode,day:p.day,ids:p.ids,i:p.i,res:p.res,depth:p.depth};jump(S.depth);if(S.i>6){finish();return}show('play');ask()}
+function goHome(){clearInterval(tick);S=null;jump(0);refreshDaily();show('start')}
+function refreshDaily(){const s=playedToday(),pd=s?null:getProg('daily'),pf=getProg('free');$('meta').textContent=dayLabel;
+  $('btnDaily').textContent=s?'Visa dagens resultat':pd?'Fortsätt dagens schakt':'Dagens schakt';
+  $('btnEndDaily').textContent=pd?'Fortsätt dagens schakt':'Dagens schakt';$('btnEndDaily').hidden=!!s;
+  $('btnResume').hidden=!pf;if(pf)$('btnResume').textContent='Fortsätt fritt schakt · fråga '+Math.min(7,pf.i+1)+' av 7';
+  $('startNote').textContent=s?'Du har redan kört dagens schakt och nådde '+fmt(s.depth)+' meter. Fritt schakt slumpar nya frågor.':pd?'Du har en påbörjad runda i dagens schakt, på fråga '+Math.min(7,pd.i+1)+' av 7.':'Dagens schakt har samma sju frågor för alla. Varje fråga har ett enda yttriumsvar, och efteråt får du veta varför. Botten ligger på 1 400 meter.'}
 function tickDay(){const k=dayKey;setDay();if(k!==dayKey)refreshDaily();
   const t='Nytt dagligt schakt om '+countdown();$('nextA').textContent=t;$('nextB').textContent=t}
-$('btnDaily').onclick=()=>{const s=playedToday();s?renderEnd('daily',s.res,s.depth):begin('daily')};
-$('btnEndDaily').onclick=()=>begin('daily');
+$('btnDaily').onclick=()=>{const s=playedToday(),pd=getProg('daily');s?renderEnd('daily',s.res,s.depth):pd?resume(pd):begin('daily')};
+$('btnEndDaily').onclick=()=>{const pd=getProg('daily');pd?resume(pd):begin('daily')};
+$('btnResume').onclick=()=>resume(getProg('free'));
+$('home').onclick=goHome;
+$('home').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();goHome()}};
 refreshDaily();tickDay();setInterval(tickDay,1000);
 </script>
 </body>
