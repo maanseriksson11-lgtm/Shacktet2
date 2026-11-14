@@ -1,0 +1,567 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Schaktet</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Barlow:wght@400;500;600&display=swap">
+<style>
+/* Layout: the mine is the whole backdrop, drawn in chunky 4 px pixels. The lift hangs near the top, everything below it is dark, and the game panel sits in that darkness. */
+:root{
+  color-scheme:dark;
+  --berg:#0C0D10; --hall:#1F2227; --kant:#3A4049; --text:#EFE9DD; --dov:#A3A5A6;
+  --falu:#A8321F; --falu-ljus:#D04A31; --knut:#F3EEE3; --lampa:#FFC233; --mossa:#4B5B33; --tak:#2A2320;
+  --grasten:#8C9197; --jarn:#5F7FA1; --koppar:#DD8347; --silver:#D8DFE6; --guld:#F4C22B; --yttrium:#74E6D8;
+  --display:"Pixelify Sans","Courier New",monospace;
+  --body:"Barlow","Segoe UI",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+body{background:var(--berg);color:var(--text);font-family:var(--body);font-size:16px;line-height:1.45}
+.wrap{max-width:560px;margin:0 auto;padding-block:285px 40px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:14px}
+
+.scene{position:fixed;inset:0;z-index:5;overflow:hidden;pointer-events:none;background:var(--berg);
+  -webkit-mask-image:linear-gradient(#000 0,#000 190px,rgba(0,0,0,.34) 360px,rgba(0,0,0,.34) 100%);mask-image:linear-gradient(#000 0,#000 190px,rgba(0,0,0,.34) 360px,rgba(0,0,0,.34) 100%)}
+.shaker{position:absolute;inset:0}
+.world{position:absolute;left:0;top:0;width:100%;will-change:transform;transform:translateY(calc(var(--cam,0) * -1px));transition:transform var(--dur,0s) cubic-bezier(.7,0,.25,1)}
+.world canvas{display:block;width:100%;image-rendering:crisp-edges;image-rendering:pixelated}
+.cable{position:absolute;left:50%;top:64px;width:4px;margin-left:-2px;background:var(--dov);height:calc(var(--y,0) * 1px + 38px);transition:height var(--dur,0s) cubic-bezier(.7,0,.25,1)}
+.cage{position:absolute;left:50%;margin-left:-16px;width:32px;height:38px;top:calc(var(--y,0) * 1px + 102px);
+  transition:top var(--dur,0s) cubic-bezier(.7,0,.25,1);border:4px solid var(--silver);background:var(--berg)}
+.cage::before{content:"";position:absolute;left:8px;top:2px;width:8px;height:8px;background:var(--lampa);box-shadow:0 0 0 4px rgba(255,194,51,.35),0 0 0 12px rgba(255,194,51,.16),0 0 0 24px rgba(255,194,51,.07)}
+.cage::after{content:"";position:absolute;left:4px;right:4px;bottom:0;height:14px;border-left:4px solid var(--silver);border-right:4px solid var(--silver);opacity:.6}
+.mk,.zn{position:absolute;font-family:var(--display);font-weight:700;font-size:13px;line-height:1;transform:translateY(-50%);text-shadow:2px 2px 0 #000;white-space:nowrap}
+.mk{left:calc(50% + 34px);color:var(--text)} .zn{right:calc(50% + 36px);text-transform:uppercase}
+.streaks{position:absolute;inset:0 0 -96px 0;opacity:0;
+  background-image:linear-gradient(var(--knut) 0 28%,transparent 28%),linear-gradient(var(--knut) 0 18%,transparent 18%),linear-gradient(var(--knut) 0 34%,transparent 34%),linear-gradient(var(--knut) 0 22%,transparent 22%),linear-gradient(var(--knut) 0 26%,transparent 26%);
+  background-size:4px 96px;background-repeat:repeat-y;background-position:7% 0,24% 40px,38% 70px,66% 20px,90% 56px}
+.flash{position:absolute;inset:0;opacity:0}
+.stamp{position:absolute;left:0;right:0;top:66px;text-align:center;font-family:var(--display);font-weight:700;font-size:34px;text-transform:uppercase;text-shadow:4px 4px 0 #000;opacity:0}
+.riding .streaks{opacity:.5;animation:rush .11s linear infinite}
+.riding .shaker{animation:rumble .16s steps(2) infinite}
+.riding .cage::before{animation:flicker .14s steps(2) infinite}
+.thud .shaker{animation:thud .4s steps(5)}
+.thud .flash{animation:flash .6s steps(6)}
+.thud .stamp{animation:stamp 1.6s steps(8) forwards}
+@keyframes rush{to{transform:translateY(-96px)}}
+@keyframes rumble{0%{transform:translate(1px,0)}50%{transform:translate(-1px,1px)}100%{transform:translate(0,-1px)}}
+@keyframes flicker{50%{opacity:.45}}
+@keyframes thud{0%{transform:translateY(6px)}35%{transform:translateY(-3px)}65%{transform:translateY(2px)}100%{transform:none}}
+@keyframes flash{0%{opacity:.55}100%{opacity:0}}
+@keyframes stamp{0%{opacity:1;transform:scale(1.8)}15%{transform:scale(1)}80%{opacity:1}100%{opacity:0}}
+
+.overlay{position:absolute;inset:0;max-width:560px;margin:0 auto}
+.mark{position:absolute;left:16px;top:calc(10px + env(safe-area-inset-top,0px));font-family:var(--display);font-weight:700;font-size:26px;text-transform:uppercase;line-height:1;text-shadow:3px 3px 0 #000}
+.mark b{color:var(--falu-ljus)}
+.meta{position:absolute;right:16px;top:calc(14px + env(safe-area-inset-top,0px));font-family:var(--display);font-size:14px;text-shadow:2px 2px 0 #000}
+.hud{position:absolute;left:16px;top:130px;font-family:var(--display);font-weight:700;font-size:34px;line-height:1;color:var(--lampa);text-shadow:3px 3px 0 #000;font-variant-numeric:tabular-nums}
+.hud small{font-size:.5em;color:var(--text)}
+.clock{position:absolute;right:16px;top:108px;width:72px;height:72px;display:grid;place-items:center;background:rgba(8,9,10,.8);border-radius:50%}
+.clock svg{position:absolute;inset:0;width:100%;height:100%}
+.trk{fill:none;stroke:var(--kant);stroke-width:7}
+.arc{fill:none;stroke:var(--lampa);stroke-width:7;stroke-dasharray:169.65;stroke-dashoffset:0}
+.clock.low .arc{stroke:var(--falu-ljus)}
+.clock span{position:relative;font-family:var(--display);font-weight:700;font-size:26px;font-variant-numeric:tabular-nums}
+
+.main{display:flex;flex-direction:column;gap:18px;min-width:0;position:relative;z-index:6;background:rgba(12,13,16,.9);border:4px solid var(--kant);box-shadow:6px 6px 0 #000;padding:16px}
+h1,h2{font-family:var(--display);margin:0;text-wrap:balance;font-weight:700}
+h1{font-size:clamp(26px,7.4vw,36px);line-height:1.05;text-transform:uppercase}
+h2{font-size:clamp(22px,6vw,28px);line-height:1.12}
+p{margin:0}
+.view{display:flex;flex-direction:column;gap:18px}
+.lead{color:var(--dov)}
+.label{font-family:var(--display);font-size:14px;letter-spacing:.06em;text-transform:uppercase;color:var(--dov)}
+.ores{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.ores li{display:grid;grid-template-columns:18px 1fr auto;gap:10px;align-items:center;padding:7px 0;border-bottom:2px solid var(--kant)}
+.ores .n{font-weight:600}
+.ores .n small{display:block;font-weight:400;color:var(--dov);font-size:13px}
+.ores .m{font-family:var(--display);font-weight:700;font-size:18px;font-variant-numeric:tabular-nums}
+.gem{width:16px;height:16px;background:var(--kant);clip-path:polygon(25% 0,75% 0,75% 25%,100% 25%,100% 75%,75% 75%,75% 100%,25% 100%,25% 75%,0 75%,0 25%,25% 25%)}
+.g10{background:var(--grasten)}.g25{background:var(--jarn)}.g45{background:var(--koppar)}.g65{background:var(--silver)}.g85{background:var(--guld)}.g100{background:var(--yttrium)}
+.c10{color:var(--grasten)}.c25{color:var(--jarn)}.c45{color:var(--koppar)}.c65{color:var(--silver)}.c85{color:var(--guld)}.c100{color:var(--yttrium)}
+button{font-family:var(--display);font-size:17px;cursor:pointer;border:0;border-radius:0;padding:14px 16px;font-weight:700;box-shadow:4px 4px 0 #000}
+.primary{background:var(--falu);color:var(--knut);border:4px solid var(--falu-ljus)}
+.ghost{background:var(--hall);color:var(--text);border:4px solid var(--kant)}
+button:active{transform:translate(2px,2px);box-shadow:2px 2px 0 #000}
+button:focus-visible,input:focus-visible{outline:4px solid var(--lampa);outline-offset:2px}
+.row{display:flex;gap:12px;flex-wrap:wrap}
+.row button{flex:1 1 130px}
+.status{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.cart{display:flex;gap:5px}
+form{display:flex;gap:10px}
+input[type=text]{flex:1;min-width:0;font:inherit;font-size:17px;padding:13px 12px;border-radius:0;border:4px solid var(--kant);background:var(--hall);color:var(--text)}
+.miss{color:var(--lampa);font-size:15px;min-height:1.45em}
+.tried{display:flex;flex-wrap:wrap;gap:6px}
+.tried span{font-size:13px;color:var(--dov);text-decoration:line-through;border:2px solid var(--kant);padding:2px 8px}
+.fb{background:var(--hall);border-left:8px solid var(--kant);padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.fb .gain{font-family:var(--display);font-weight:700;font-size:30px;line-height:1;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.fb .gain span{font-size:.6em;text-transform:uppercase}
+.fb p{color:var(--dov);font-size:15px}
+.fb p b{color:var(--text);font-weight:600}
+.fb p b.c100{color:var(--yttrium)}
+.total{font-family:var(--display);font-weight:700;font-size:clamp(56px,18vw,84px);line-height:.95;color:var(--lampa);font-variant-numeric:tabular-nums}
+.total small{font-size:.4em;color:var(--dov)}
+.recap{list-style:none;margin:0;padding:0;border-top:2px solid var(--kant)}
+.recap li{display:grid;grid-template-columns:18px 1fr auto;gap:2px 10px;align-items:center;padding:9px 0;border-bottom:2px solid var(--kant);font-size:15px}
+.recap .q{grid-column:1/-1;color:var(--dov);font-size:13px}
+.recap .p{font-family:var(--display);font-weight:700;font-variant-numeric:tabular-nums}
+.note{font-size:14px;color:var(--dov)}
+.note.next{font-family:var(--display);font-size:15px;color:var(--lampa);font-variant-numeric:tabular-nums}
+.recap details{grid-column:1/-1;min-width:0}
+.recap summary{cursor:pointer;font-family:var(--display);font-size:14px;color:var(--lampa);padding:4px 0}
+.recap summary:focus-visible{outline:3px solid var(--lampa)}
+.tier{display:flex;flex-direction:column;gap:2px;padding:8px 0 8px 12px;border-left:4px solid var(--kant);margin-top:6px;font-size:14px;color:var(--text)}
+.tier .th{font-family:var(--display);font-weight:700;text-transform:uppercase;font-size:13px}
+.tier .why{color:var(--dov);font-size:13px}
+@keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.shake{animation:shake .2s steps(2) 2}
+@media (prefers-reduced-motion:reduce){.cage,.cable,.world{transition:none}.shake,.riding .shaker,.riding .streaks,.thud .shaker{animation:none}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="scene" id="scene">
+    <div class="shaker" aria-hidden="true">
+      <div class="world" id="world"><canvas id="rock"></canvas><div class="cable"></div><div class="cage"></div></div>
+      <div class="streaks"></div>
+    </div>
+    <div class="flash" id="flash"></div>
+    <div class="overlay">
+      <div class="mark">Schakt<b>et</b></div><div class="meta" id="meta"></div>
+      <div class="stamp" id="stamp" aria-hidden="true"></div>
+      <div class="hud"><span id="depth">0</span> <small>m</small></div>
+      <div class="clock" id="clock" hidden><svg viewBox="0 0 64 64" aria-hidden="true" shape-rendering="crispEdges"><circle class="trk" cx="32" cy="32" r="27"/><circle class="arc" id="arc" cx="32" cy="32" r="27" transform="rotate(-90 32 32)"/></svg><span id="secs">30</span></div>
+    </div>
+  </div>
+
+  <div class="main">
+    <section class="view" id="start">
+      <h1>Hur djupt i berget kommer du?</h1>
+      <p class="lead">Sju öppna frågor med massor av rätta svar. Du börjar uppe vid laven, och varje rätt svar skickar hissen nedåt: ju ovanligare svaret är, desto längre åker du. Fel svar kostar ingenting, gissa igen tills de 30 sekunderna är slut.</p>
+      <div>
+        <p class="label">Det här hittar du i berget</p>
+        <ul class="ores" id="ores"></ul>
+      </div>
+      <div class="row">
+        <button class="primary" id="btnDaily">Dagens schakt</button>
+        <button class="ghost" id="btnFree">Fritt schakt</button>
+      </div>
+      <p class="note next" id="nextA"></p>
+      <p class="note" id="startNote">Dagens schakt har samma sju frågor för alla. Varje fråga har ett enda yttriumsvar, och efteråt får du veta varför. Botten ligger på 1 400 meter.</p>
+    </section>
+
+    <section class="view" id="play" hidden>
+      <div class="status"><p class="label">Fråga <span id="qn">1</span> av 7</p><div class="cart" id="cart" aria-label="Malmvagn"></div></div>
+      <h2 id="question"></h2>
+      <form id="form" autocomplete="off">
+        <input type="text" id="answer" placeholder="Skriv ett svar" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Ditt svar">
+        <button class="primary" id="btnAnswer" type="submit">Borra</button>
+      </form>
+      <p class="miss" id="miss" aria-live="polite"></p>
+      <div class="tried" id="tried"></div>
+      <div class="fb" id="fb" hidden></div>
+      <button class="primary" id="btnNext" hidden>Nästa fråga</button>
+    </section>
+
+    <section class="view" id="end" hidden>
+      <p class="label" id="endLabel"></p>
+      <div class="total"><span id="total">0</span> <small>m</small></div>
+      <p id="zoneText"></p>
+      <ul class="recap" id="recap"></ul>
+      <div class="row">
+        <button class="primary" id="btnCopy">Kopiera resultat</button>
+        <button class="ghost" id="btnEndDaily" hidden>Dagens schakt</button>
+        <button class="ghost" id="btnAgain">Fritt schakt</button>
+      </div>
+      <p class="note next" id="nextB"></p>
+      <p class="note" id="endNote"></p>
+    </section>
+  </div>
+</div>
+
+<script>
+const TIERS=[[10,'Gråsten','det första alla tänker på','grasten'],[25,'Järnmalm','ganska vanligt','jarn'],[45,'Koppar','lite vid sidan av','koppar'],[65,'Silver','få väljer det','silver'],[85,'Guld','riktigt ovanligt','guld'],[100,'Yttrium','nästan ingen tänker på det','yttrium']];
+const ZONES=[[0,'gråstenen',10],[200,'järnmalmen',25],[500,'kopparlagret',45],[800,'silverlagret',65],[1050,'guldådern',85],[1250,'yttriumfyndet',100]];
+const BOTTOM=1400, SECONDS=30, M=2;
+const tierOf=p=>TIERS.find(t=>t[0]===p), tierName=p=>(tierOf(p)||[])[1]||'';
+
+/* answers are written per tier: {10:[...],25:[...]}; an entry is a name or [name, alias, alias...] */
+const BANK=[
+{q:'Nämn ett land i Europa.',t:{10:['Sverige','Norge','Danmark','Finland','Tyskland','Frankrike','Spanien','Italien'],
+ 25:[['Storbritannien','uk','förenade kungariket'],'Polen','Grekland',['Nederländerna','holland'],'Portugal'],
+ 45:['Belgien','Schweiz','Österrike','Irland','Island','Ukraina','Ryssland','Kroatien'],
+ 65:[['Tjeckien','tjeckiska republiken'],'Ungern','Rumänien','Bulgarien','Serbien','Estland','Lettland','Litauen','Albanien','Turkiet'],
+ 85:['Slovakien','Slovenien',['Belarus','vitryssland'],['Bosnien och Hercegovina','bosnien','bosnien-hercegovina'],'Montenegro',['Nordmakedonien','makedonien'],'Luxemburg','Malta','Cypern','Kosovo'],
+ 100:[['Moldavien','moldova'],'Andorra','Monaco','Liechtenstein','San Marino',['Vatikanstaten','vatikanen']]}},
+{q:'Nämn en huvudstad i Europa.',t:{10:['Stockholm','Paris','London','Berlin','Oslo','Köpenhamn'],
+ 25:['Rom','Madrid',['Helsingfors','helsinki'],'Aten','Amsterdam'],
+ 45:['Wien','Bryssel','Lissabon','Dublin','Warszawa','Prag','Budapest','Moskva','Reykjavik'],
+ 65:['Bern',['Kyiv','kiev'],'Tallinn','Riga','Zagreb','Belgrad','Bukarest','Sofia'],
+ 85:['Vilnius','Bratislava','Ljubljana','Minsk','Sarajevo','Tirana','Valletta','Nicosia','Luxemburg','Ankara'],
+ 100:['Skopje','Podgorica','Chisinau','Pristina','Vaduz','Andorra la Vella','Monaco','San Marino',['Vatikanstaten','vatikanen']]}},
+{q:'Nämn ett land i Afrika.',t:{10:['Egypten','Sydafrika'],25:['Marocko','Kenya','Nigeria'],
+ 45:['Etiopien','Tunisien','Ghana','Tanzania','Algeriet','Somalia'],
+ 65:['Uganda','Senegal','Kamerun','Madagaskar','Libyen','Sudan','Zimbabwe','Angola',['Kongo','kongo-kinshasa','kongo-brazzaville','dr kongo','demokratiska republiken kongo','republiken kongo'],'Mali'],
+ 85:['Namibia','Botswana','Zambia',['Moçambique','mozambique'],'Rwanda','Elfenbenskusten','Gambia','Eritrea','Niger','Tchad','Liberia','Sierra Leone','Sydsudan'],
+ 100:['Mauretanien','Burkina Faso','Benin','Togo','Guinea','Guinea-Bissau','Ekvatorialguinea','Gabon',['Centralafrikanska republiken','centralafrika'],'Burundi','Malawi','Lesotho',['Eswatini','swaziland'],'Djibouti','Komorerna','Mauritius','Seychellerna','Kap Verde',['São Tomé och Príncipe','sao tome']]}},
+{q:'Nämn en svensk stad.',t:{10:['Stockholm','Göteborg','Malmö'],
+ 25:['Uppsala','Västerås','Örebro','Linköping','Helsingborg','Norrköping','Jönköping','Lund','Umeå'],
+ 45:['Gävle','Borås','Sundsvall','Eskilstuna','Karlstad','Växjö','Halmstad','Luleå','Kalmar','Östersund','Kiruna','Visby'],
+ 65:['Trollhättan','Falun','Skellefteå','Kristianstad','Karlskrona','Skövde','Uddevalla','Nyköping','Borlänge','Motala','Örnsköldsvik','Varberg','Södertälje','Ystad'],
+ 85:['Piteå','Landskrona','Trelleborg','Ängelholm','Lidköping','Sandviken','Karlskoga','Kungsbacka','Mora','Västervik','Enköping','Norrtälje','Hudiksvall','Härnösand','Katrineholm','Köping','Sala','Arvika','Kungälv','Alingsås','Falkenberg','Vänersborg','Oskarshamn','Nässjö','Värnamo','Ludvika','Boden','Haparanda','Sigtuna','Karlshamn','Mariestad','Söderhamn'],
+ 100:['Hjo','Åmål','Säter',['Skanör med Falsterbo','skanör','falsterbo'],'Vaxholm','Trosa','Öregrund','Östhammar','Mariefred','Gränna','Vadstena','Simrishamn','Strömstad','Lysekil','Marstrand','Söderköping','Torshälla','Nora','Askersund','Filipstad','Hedemora','Avesta','Sölvesborg','Tidaholm','Ulricehamn']}},
+{q:'Nämn ett svenskt landskap.',t:{10:['Skåne','Småland','Dalarna'],25:['Lappland','Gotland','Värmland','Halland','Uppland'],
+ 45:['Västergötland','Östergötland','Öland','Blekinge','Jämtland',['Södermanland','sörmland'],'Bohuslän'],
+ 65:['Norrbotten','Västerbotten','Ångermanland','Hälsingland','Närke','Västmanland'],85:['Dalsland','Gästrikland','Härjedalen'],100:['Medelpad']}},
+{q:'Nämn ett vilt däggdjur som finns i Sverige.',t:{10:[['Älg','älgen'],['Rådjur','rådjuret'],['Räv','rödräv','räven']],
+ 25:[['Hare','skogshare','fälthare','haren'],['Ekorre','ekorren'],'Vildsvin',['Varg','vargen'],['Björn','brunbjörn','björnen']],
+ 45:['Grävling','Igelkott',['Lodjur','lo'],'Bäver',['Säl','gråsäl','knubbsäl','vikare'],'Ren'],
+ 65:['Utter',['Mård','skogsmård'],'Dovhjort',['Kronhjort','hjort'],'Mullvad','Fladdermus',['Mus','skogsmus','husmus'],['Råtta','brunråtta']],
+ 85:['Fjällräv','Järv','Hermelin','Mink',['Lämmel','fjällämmel'],'Näbbmus',['Vessla','småvessla'],['Sork','åkersork','vattensork']],
+ 100:['Myskoxe','Tumlare','Hasselmus','Iller','Mårdhund','Buskmus','Mufflonfår',['Vildkanin','kanin']]}},
+{q:'Nämn en fågel som finns i Sverige.',t:{10:['Skata','Koltrast'],
+ 25:['Gråsparv','Talgoxe','Blåmes','Kråka',['Svan','knölsvan','sångsvan'],['Mås','fiskmås','gråtrut','skrattmås','trut'],['Gräsand','and'],['Duva','ringduva','tamduva']],
+ 45:['Domherre',['Hackspett','större hackspett','spillkråka','gröngöling'],['Örn','havsörn','kungsörn'],['Uggla','kattuggla'],'Trana','Gök',['Svala','ladusvala','hussvala'],'Rödhake'],
+ 65:['Stare',['Lärka','sånglärka'],'Sädesärla','Nötskrika','Bofink','Tjäder','Kaja','Korp',['Häger','gråhäger'],['Skarv','storskarv'],['Gås','grågås','kanadagås'],'Nötväcka','Pilfink'],
+ 85:['Orre',['Ripa','fjällripa','dalripa'],'Tofsvipa','Storspov','Berguv','Näktergal','Sidensvans','Ejder',['Tärna','fisktärna','silvertärna'],'Strandskata','Ormvråk','Sparvhök','Tornseglare','Gärdsmyg','Grönfink'],
+ 100:['Kungsfiskare','Lappuggla','Steglits',['Lom','storlom','smålom'],'Pilgrimsfalk','Fjälluggla','Vitryggig hackspett','Kungsfågel','Lavskrika','Fiskgjuse','Morkulla','Rördrom','Stenknäck','Törnskata','Göktyta','Härfågel','Tretåig hackspett']}},
+{q:'Nämn ett grundämne.',t:{10:['Syre','Väte','Guld','Järn'],25:['Kol','Silver','Koppar','Helium','Kväve'],
+ 45:['Natrium','Kalcium','Klor','Zink','Bly','Kvicksilver','Uran','Aluminium','Neon'],
+ 65:['Kalium','Magnesium','Svavel','Fosfor','Litium','Kisel','Tenn','Nickel','Platina','Titan','Fluor'],
+ 85:['Jod','Krom','Kobolt','Argon','Plutonium','Radium','Volfram','Mangan','Arsenik','Bor','Brom','Radon'],
+ 100:['Yttrium','Ytterbium','Erbium','Terbium','Holmium','Xenon','Krypton',['Skandium','scandium'],['Vanadin','vanadium'],'Selen','Cesium','Barium','Beryllium','Gallium','Germanium','Torium','Polonium','Iridium','Osmium','Palladium','Molybden','Kadmium','Antimon','Vismut','Tantal','Niob','Rubidium','Strontium','Zirkonium','Indium','Tellur','Lantan','Cerium','Neodym','Europium','Gadolinium','Tulium','Lutetium','Hafnium','Rodium','Francium','Americium','Einsteinium','Nobelium']}},
+{q:'Nämn ett musikinstrument.',t:{10:['Gitarr','Piano',['Trummor','trumma','trumset']],
+ 25:[['Fiol','violin'],['Flöjt','tvärflöjt'],'Trumpet',['Bas','elbas','basgitarr']],
+ 45:['Saxofon','Cello','Klarinett','Dragspel','Munspel','Blockflöjt','Orgel','Elgitarr'],
+ 65:['Harpa','Trombon','Ukulele','Tuba','Kontrabas','Banjo',['Synt','synthesizer','keyboard'],'Xylofon'],
+ 85:['Oboe','Fagott','Valthorn','Mandolin','Säckpipa','Triangel','Tamburin',['Altfiol','viola'],'Flygel','Maracas','Cymbal','Kastanjetter'],
+ 100:['Nyckelharpa','Cembalo','Puka','Didgeridoo','Sitar','Marimba','Luta','Kornett','Panflöjt','Cittra','Theremin','Vevlira','Mungiga','Näverlur','Kohorn','Balalajka','Kalimba','Djembe','Vibrafon','Piccolaflöjt','Engelskt horn','Spilåpipa']}},
+{q:'Nämn en frukt eller ett bär.',t:{10:['Äpple','Banan','Apelsin'],
+ 25:['Päron',['Jordgubbe','jordgubbar'],['Vindruva','druva','vindruvor'],'Citron','Blåbär'],
+ 45:['Hallon','Mango','Ananas','Kiwi',['Melon','vattenmelon','honungsmelon'],'Körsbär','Persika','Plommon','Lingon'],
+ 65:['Clementin','Mandarin','Lime','Nektarin','Aprikos','Grapefrukt','Björnbär',['Vinbär','svarta vinbär','röda vinbär'],'Hjortron','Smultron'],
+ 85:['Krusbär','Granatäpple','Passionsfrukt','Fikon','Dadel','Papaya',['Kokosnöt','kokos'],'Tranbär','Avokado','Satsuma','Pomelo'],
+ 100:['Havtorn','Åkerbär','Nypon',['Fläderbär','fläder'],'Slånbär','Rönnbär','Kumquat','Litchi',['Drakfrukt','pitaya'],['Kaki','sharon','sharonfrukt'],'Physalis',['Stjärnfrukt','karambola'],'Guava','Kvitten','Mullbär','Odon','Kråkbär','Aronia','Enbär','Durian','Mispel','Blodapelsin']}},
+{q:'Nämn en himlakropp i solsystemet: stjärna, planet, dvärgplanet eller måne.',t:{10:['Jorden','Mars'],25:['Solen','Månen','Jupiter','Saturnus'],
+ 45:['Venus','Merkurius','Neptunus','Pluto'],65:['Uranus'],85:['Titan','Europa','Io','Ganymedes'],
+ 100:['Ceres','Eris',['Callisto','kallisto'],'Enceladus','Triton','Phobos','Deimos','Charon','Haumea','Makemake','Mimas','Titania','Oberon','Miranda']}},
+{q:'Nämn en svensk kung eller regerande drottning från Gustav Vasa och framåt.',t:{10:[['Gustav Vasa','gustav i','gustav 1'],['Carl XVI Gustaf','carl gustaf','karl gustav','carl gustav','karl xvi gustav','carl xvi gustav','carl 16 gustaf','karl 16 gustav','kungen']],
+ 25:[['Gustav II Adolf','gustav 2 adolf','gustav adolf','gustaf ii adolf'],['Karl XII','karl 12','karl den tolfte'],['Kristina','drottning kristina']],
+ 45:[['Gustav III','gustav 3','gustav den tredje'],['Erik XIV','erik 14'],['Gustav V','gustaf v','gustav 5'],['Gustaf VI Adolf','gustav vi adolf','gustav 6 adolf'],['Karl XIV Johan','karl 14 johan','jean baptiste bernadotte','bernadotte']],
+ 65:[['Karl XI','karl 11'],['Karl X Gustav','karl 10 gustav','karl x gustaf'],['Johan III','johan 3'],['Oscar II','oskar ii','oscar 2','oskar 2']],
+ 85:[['Karl IX','karl 9'],['Oscar I','oskar i','oscar 1','oskar 1'],['Karl XV','karl 15'],['Gustav IV Adolf','gustav 4 adolf'],'Adolf Fredrik'],
+ 100:[['Karl XIII','karl 13'],['Fredrik I','fredrik 1','fredrik av hessen'],['Ulrika Eleonora','ulrika eleonora den yngre'],'Sigismund']}},
+{q:'Nämn en figur ur Astrid Lindgrens böcker.',t:{10:[['Pippi Långstrump','pippi'],['Emil i Lönneberga','emil']],
+ 25:[['Ronja Rövardotter','ronja'],['Karlsson på taket','karlsson']],
+ 45:['Madicken',['Lotta på Bråkmakargatan','lotta'],['Skorpan','karl lejonhjärta','skorpan lejonhjärta'],['Jonatan Lejonhjärta','jonatan'],['Ida','lilla ida']],
+ 65:[['Mio','mio min mio'],['Kalle Blomkvist','mästerdetektiven blomkvist'],'Tjorven',['Birk Borkason','birk'],'Alfred','Annika','Tommy'],
+ 85:[['Rasmus','rasmus på luffen'],'Nils Karlsson Pyssling','Lisabet','Lillebror','Herr Nilsson','Lilla Gubben','Mattis','Skalle-Per','Tengil','Katla','Lina','Lisa','Lasse','Bosse'],
+ 100:['Kajsa Kavat',['Paradis-Oskar','oskar'],'Lovis','Jum-Jum','Krösa-Maja',['Anton Svensson','anton'],'Båtsman','Riddar Kato','Borka','Prussiluskan','Kling och Klang','Fröken Bock','Pelle','Stina','Melker','Abbe','Miramis','Jossi','Farbror Julius']}},
+{q:'Nämn en svensk statsminister som tillträdde mellan 1946 och 2022.',t:{10:[['Olof Palme','palme'],['Stefan Löfven','löfven'],['Magdalena Andersson','andersson'],['Ulf Kristersson','kristersson']],
+ 25:[['Fredrik Reinfeldt','reinfeldt'],['Göran Persson','persson'],['Carl Bildt','bildt']],
+ 45:[['Tage Erlander','erlander'],['Ingvar Carlsson','carlsson']],65:[['Thorbjörn Fälldin','fälldin','torbjörn fälldin']],100:[['Ola Ullsten','ullsten']]}},
+{q:'Nämn en svensk nationalpark.',t:{10:['Sarek','Abisko'],25:['Kosterhavet','Tyresta'],
+ 45:['Fulufjället','Stora Sjöfallet',['Padjelanta','badjelannda'],'Söderåsen','Tiveden'],
+ 65:['Store Mosse','Skuleskogen','Gotska Sandön',['Muddus','muttos'],'Färnebofjärden','Blå Jungfrun','Stenshuvud','Åsnen'],
+ 85:['Sonfjället','Tresticklan','Djurö','Ängsö','Hamra','Haparanda skärgård','Nämdöskärgården'],
+ 100:['Garphyttan','Dalby Söderskog','Norra Kvill','Pieljekaise','Töfsingdalen','Vadvetjåkka','Björnlandet']}},
+{q:'Nämn ett av Sveriges världsarv.',t:{10:[['Visby','hansestaden visby']],
+ 25:[['Drottningholm','drottningholms slott'],['Birka','birka och hovgården','hovgården'],'Höga kusten',['Falu gruva','falun','falu koppargruva','gruvan i falun']],
+ 45:['Laponia',['Karlskrona','örlogsstaden karlskrona'],['Tanum','hällristningarna i tanum','tanums hällristningar']],
+ 65:['Skogskyrkogården',['Södra Öland','ölands odlingslandskap','stora alvaret'],['Hälsingegårdarna','hälsingegårdar']],
+ 85:[['Engelsbergs bruk','engelsberg'],['Gammelstads kyrkstad','gammelstad']],
+ 100:[['Grimeton','radiostationen i grimeton','grimeton radiostation'],['Struves meridianbåge','struve']]}},
+{q:'Nämn en hundras.',t:{10:[['Labrador','labrador retriever'],['Schäfer','schäferhund'],'Golden retriever'],
+ 25:['Tax','Pudel','Chihuahua','Mops',['Bulldogg','fransk bulldogg','engelsk bulldogg']],
+ 45:['Rottweiler','Border collie','Dalmatiner',['Husky','siberian husky'],'Beagle',['Cocker spaniel','cocker'],['Jack russell','jack russell terrier']],
+ 65:['Boxer',['Dobermann','doberman'],'Pomeranian','Collie','Grand danois',['Sankt bernhard','sankt bernhardshund','s:t bernhard'],['Corgi','welsh corgi'],['Yorkshireterrier','yorkshire terrier','yorkie']],
+ 85:['Shih tzu',['Bichon frisé','bichon','bichon havanais'],['Cavalier king charles spaniel','cavalier','cavalier king charles'],['Staffordshire bullterrier','staffe','amstaff'],'Whippet','Greyhound','Newfoundland','Berner sennen','Samojed',['Shiba','shiba inu'],'Schnauzer',['Springer spaniel','engelsk springer spaniel'],'Shetland sheepdog'],
+ 100:['Jämthund','Drever','Hamiltonstövare','Norrbottenspets','Svensk lapphund','Västgötaspets','Gråhund','Akita','Basset',['Malamute','alaskan malamute'],'Leonberger','Papillon','Vizsla','Weimaraner','Irländsk setter','Pointer','Smålandsstövare','Schillerstövare','Dansk-svensk gårdshund','Finsk lapphund','Lagotto','Rhodesian ridgeback','Afghanhund','Saluki','Borzoi','Irländsk varghund','Kleinspitz','Wachtelhund']}},
+{q:'Nämn ett träd som växer vilt i Sverige.',t:{10:['Gran','Tall','Björk'],25:['Ek'],45:['Lönn','Rönn','Asp','Bok'],
+ 65:['Al','Ask','Lind','Alm','Sälg','Pil','En'],85:['Hassel','Hägg','Lärk',['Fågelbär','körsbär','sötkörsbär'],['Apel','vildapel','äppelträd']],
+ 100:['Oxel','Avenbok','Idegran','Naverlönn','Hagtorn','Skogsalm','Vresalm','Lundalm','Skogslind','Bergek','Glasbjörk','Vårtbjörk','Klibbal','Gråal','Jolster']}},
+{q:'Nämn ett land i Asien.',t:{10:['Kina','Japan','Indien'],25:['Thailand','Sydkorea','Vietnam','Indonesien','Pakistan'],
+ 45:['Iran','Irak','Saudiarabien','Israel','Filippinerna','Nordkorea','Afghanistan','Malaysia','Singapore','Nepal'],
+ 65:['Mongoliet','Syrien','Libanon','Bangladesh','Sri Lanka','Kambodja','Kazakstan','Jordanien','Qatar',['Förenade Arabemiraten','emiraten','uae','arabemiraten'],'Taiwan',['Myanmar','burma']],
+ 85:['Laos','Uzbekistan','Kuwait','Oman','Jemen','Bahrain','Georgien','Armenien','Azerbajdzjan','Maldiverna','Kirgizistan','Tadzjikistan','Turkmenistan','Brunei',['Östtimor','timor-leste']],100:['Bhutan']}},
+{q:'Nämn en delstat i USA.',t:{10:[['Kalifornien','california'],'Texas','Florida','New York'],25:['Hawaii','Alaska','Washington','Nevada'],
+ 45:['Colorado','Arizona','Illinois','Georgia','Ohio','Michigan','Minnesota','Massachusetts','Pennsylvania','Virginia','Oregon','Utah'],
+ 65:['New Jersey','North Carolina','South Carolina','Tennessee','Louisiana','Kentucky','Wisconsin','Montana','Oklahoma','Kansas','Maine','Indiana','Alabama','Mississippi','Missouri','New Mexico','Iowa'],
+ 85:['Maryland','Connecticut','Idaho','Wyoming','Nebraska','North Dakota','South Dakota','Arkansas','Vermont','New Hampshire','West Virginia','Rhode Island'],100:['Delaware']}},
+{q:'Nämn en svensk ö.',t:{10:['Gotland','Öland'],25:['Orust','Tjörn'],45:['Fårö','Ven','Hisingen','Värmdö','Visingsö','Lidingö','Smögen'],
+ 65:['Gotska Sandön','Utö','Marstrand',['Koster','nordkoster','sydkoster'],'Öckerö','Hönö','Styrsö','Möja','Ljusterö','Ingarö','Ekerö','Alnön','Ulvön','Stora Karlsö','Blå Jungfrun','Käringön','Gräsö',['Sandhamn','sandön']],
+ 85:['Adelsö','Björkö','Selaön','Hanö','Holmön','Seskarö','Hemsön','Trysunda','Lilla Karlsö','Furillen','Hallands Väderö','Donsö','Brännö','Vrångö','Torsö','Kållandsö','Hammarö','Singö','Arholma',['Öja','landsort'],'Ornö','Runmarö','Nåttarö','Aspö'],100:['Märket']}},
+{q:'Nämn en grönsak eller rotfrukt.',t:{10:['Morot','Gurka','Tomat'],25:['Potatis','Sallad','Lök','Paprika','Broccoli'],
+ 45:['Blomkål','Majs',['Ärta','ärtor','ärter'],['Vitkål','kål'],'Purjolök','Spenat',['Zucchini','squash'],'Rödbeta','Vitlök'],
+ 65:['Aubergine','Selleri','Sparris','Rädisa','Kålrot','Palsternacka','Rödkål','Pumpa',['Böna','bönor','haricots verts'],'Grönkål','Sötpotatis','Rödlök'],
+ 85:['Brysselkål','Fänkål','Kronärtskocka','Jordärtskocka','Majrova','Mangold',['Rucola','ruccola'],'Pak choi','Rotselleri','Kålrabbi','Pepparrot'],100:['Svartrot']}},
+{q:'Nämn ett land i Sydamerika.',t:{10:['Brasilien','Argentina'],25:['Chile','Colombia','Peru'],45:['Venezuela','Ecuador','Uruguay','Bolivia'],65:['Paraguay'],85:['Guyana'],100:[['Surinam','suriname']]}},
+{q:'Nämn en dinosaurie.',t:{10:[['Tyrannosaurus rex','t-rex','t rex','tyrannosaurus']],25:['Triceratops',['Velociraptor','raptor']],45:['Stegosaurus','Brachiosaurus','Diplodocus'],
+ 65:['Spinosaurus','Ankylosaurus','Brontosaurus','Allosaurus','Iguanodon'],
+ 85:['Parasaurolophus','Pachycephalosaurus','Apatosaurus','Giganotosaurus','Carnotaurus','Dilophosaurus','Compsognathus','Deinonychus','Gallimimus','Therizinosaurus','Argentinosaurus','Protoceratops','Oviraptor','Baryonyx','Utahraptor'],100:['Archaeopteryx']}},
+{q:'Nämn ett land i Nordamerika, Centralamerika eller Karibien.',t:{10:['USA','Kanada','Mexiko'],25:['Kuba','Jamaica'],
+ 45:['Costa Rica','Panama','Dominikanska republiken','Haiti','Bahamas'],65:['Guatemala','Honduras','Nicaragua','El Salvador','Barbados','Trinidad och Tobago'],
+ 85:['Belize','Grenada','Saint Lucia','Dominica','Antigua och Barbuda',['Saint Vincent och Grenadinerna','saint vincent']],100:[['Saint Kitts och Nevis','saint kitts','st kitts och nevis']]}},
+{q:'Nämn ett organ i människokroppen.',t:{10:[['Hjärta','hjärtat'],['Hjärna','hjärnan'],['Lunga','lungor','lungorna']],
+ 25:[['Lever','levern'],['Njure','njurar','njurarna'],['Magsäck','mage','magen'],['Hud','huden']],
+ 45:[['Tarm','tunntarm','tjocktarm','tarmar','tarmarna'],['Öga','ögon','ögat'],['Öra','öron','örat'],'Bukspottkörtel'],
+ 65:['Mjälte','Gallblåsa','Urinblåsa','Tunga','Sköldkörtel','Livmoder','Blindtarm'],
+ 85:['Binjure','Hypofys','Matstrupe','Luftstrupe','Prostata',['Äggstock','äggstockar'],['Testikel','testiklar'],['Tymus','brässen']],100:['Tallkottkörtel']}},
+{q:'Nämn en gud eller gudinna i nordisk mytologi.',t:{10:[['Tor','thor'],['Oden','odin']],25:[['Loke','loki'],['Freja','freya','fröja']],45:[['Balder','baldur'],['Frej','frö'],'Frigg'],
+ 65:['Heimdall','Tyr','Idun','Njord'],85:['Brage','Sif','Hel','Skade','Vidar',['Höder','höd'],'Vale','Forsete','Nanna','Ran',['Ägir','aegir']],100:['Ull']}},
+{q:'Nämn en svensk sjö.',t:{10:['Vänern','Vättern','Mälaren'],25:['Siljan','Hjälmaren'],45:['Storsjön','Torneträsk','Bolmen'],
+ 65:['Runn','Åsnen','Sommen','Glan','Roxen','Fryken','Glafsfjorden','Ringsjön','Ivösjön','Tåkern','Hornborgasjön'],
+ 85:['Akkajaure','Uddjaure','Storuman','Dellen','Stora Le','Unden','Skagern','Möckeln','Vombsjön','Mien','Orsasjön','Kallsjön','Flåsjön','Stora Lulevatten','Storavan','Ånnsjön','Tisaren','Yngaren','Båven','Erken'],100:['Hornavan']}},
+{q:'Nämn en färg.',t:{10:[['Röd','rött'],['Blå','blått'],['Grön','grönt']],25:[['Gul','gult'],['Svart','svart'],['Vit','vitt'],'Rosa'],
+ 45:['Lila','Orange',['Brun','brunt'],['Grå','grått']],65:['Turkos','Beige','Guld','Silver','Vinröd','Marinblå','Violett'],
+ 85:['Cerise','Magenta','Cyan','Ockra','Khaki','Indigo','Lime','Purpur','Olivgrön','Korall','Aprikos','Lavendel','Mintgrön','Petrol','Scharlakansröd','Karmin'],100:[['Faluröd','falu rödfärg','falurött','falu röd']]}},
+{q:'Nämn ett land i Oceanien.',t:{10:['Australien'],25:['Nya Zeeland'],45:['Fiji'],65:['Papua Nya Guinea','Samoa','Tonga'],
+ 85:['Vanuatu','Salomonöarna','Kiribati','Palau','Mikronesien','Marshallöarna','Tuvalu'],100:['Nauru']}},
+{q:'Nämn en fisk som finns i svenska vatten.',t:{10:['Gädda','Abborre','Lax'],25:['Torsk',['Sill','strömming'],'Makrill'],45:['Öring','Gös','Ål','Röding','Mört'],
+ 65:['Braxen','Sik','Harr','Lake','Rödspätta',['Flundra','skrubbskädda'],'Kolja','Sej','Karp','Sutare','Id'],
+ 85:['Siklöja','Nors','Gers','Ruda','Björkna','Löja','Sarv','Stäm','Asp','Färna','Piggvar','Tånglake',['Horngädda','näbbgädda'],'Havskatt','Marulk','Vitling','Skarpsill','Simpa','Spigg','Elritsa'],100:['Mal']}},
+{q:'Nämn en krydda eller kryddört.',t:{10:[['Peppar','svartpeppar','vitpeppar'],'Kanel'],25:['Basilika','Oregano','Persilja','Dill','Paprika'],
+ 45:['Ingefära','Timjan','Rosmarin','Vanilj','Curry','Chili','Kardemumma','Gräslök'],
+ 65:['Saffran','Kummin','Spiskummin',['Muskot','muskotnöt'],['Kryddnejlika','nejlika'],'Gurkmeja','Koriander','Mynta','Lagerblad','Salvia','Dragon'],
+ 85:['Kryddpeppar','Anis','Fänkål','Stjärnanis','Mejram','Körvel','Libbsticka','Senapsfrö','Enbär','Kajennpeppar','Sumak','Bockhornsklöver','Citronmeliss'],100:[['Pomerans','pomeransskal']]}}
+];
+/* one yttrium answer per question, in BANK order, with the reason it is the deepest find */
+const YT=[
+['San Marino','Räknas som världens äldsta republik som fortfarande finns, enligt traditionen grundad år 301.'],
+['Vaduz','Huvudstad i Liechtenstein med bara omkring 6 000 invånare, i ett land som saknar egen flygplats.'],
+['Lesotho','Helt omgivet av ett enda annat land, Sydafrika, och hela landet ligger högre än 1 000 meter över havet.'],
+['Hjo','Liten trästad vid Vättern, en av de tre städerna i samarbetet Tre trästäder tillsammans med Eksjö och Nora.'],
+['Medelpad','Här ligger Flataklocken, berget som räknas som Sveriges geografiska mittpunkt, men landskapet glöms ofta bort.'],
+['Myskoxe','En liten vild flock lever i Härjedalens fjäll. Den härstammar från djur som vandrade in från Norge 1971.'],
+['Vitryggig hackspett','En av Sveriges mest hotade fåglar. Bara ett fåtal par häckar i landet.'],
+['Yttrium','Uppkallat efter Ytterby gruva utanför Vaxholm, precis som ytterbium, terbium och erbium. Det är därför det djupaste fyndet i spelet heter yttrium.'],
+['Nyckelharpa','Kallas ofta Sveriges nationalinstrument. Den har spelats här sedan medeltiden och har sin starkaste tradition i Uppland.'],
+['Åkerbär','Ett ovanligt bär som mest växer i norra Sverige. Åkerbär är Norrbottens landskapsblomma.'],
+['Ceres','Den största kroppen i asteroidbältet mellan Mars och Jupiter, och den enda dvärgplaneten där.'],
+['Ulrika Eleonora','Regerande drottning i bara drygt ett år, 1719–1720, innan hon lämnade över tronen till sin man Fredrik I.'],
+['Kajsa Kavat','Titelfigur i en novellsamling från 1950, långt mindre känd än Pippi och Emil.'],
+['Ola Ullsten','Ledde en ren folkpartiregering i bara ungefär ett år, 1978–1979.'],
+['Dalby Söderskog','Sveriges minsta nationalpark: bara 36 hektar lövskog i Skåne.'],
+['Struves meridianbåge','En kedja av mätpunkter genom tio länder, från Norra ishavet till Svarta havet. Fyra av punkterna ligger i Sverige.'],
+['Hamiltonstövare','Svensk jakthund uppkallad efter greve Adolf Patrik Hamilton, som grundade Svenska Kennelklubben.'],
+['Idegran','Nästan hela trädet är giftigt. Bara det röda fruktköttet runt fröet är ofarligt.'],
+['Bhutan','Litet kungarike i Himalaya som mäter framgång i bruttonationallycka i stället för bara BNP.'],
+['Delaware','Kallas den första delstaten, eftersom den var först med att godkänna USA:s konstitution 1787.'],
+['Märket','En obebodd klippö i Ålands hav som delas mellan Sverige och Finland. Gränsen går i sicksack över ön så att den finska fyren hamnar på finsk mark.'],
+['Svartrot','Kallas fattigmanssparris: en lång svart rot som är vit inuti och smakar lite som sparris.'],
+['Surinam','Sydamerikas minsta land, och det enda där nederländska är officiellt språk.'],
+['Archaeopteryx','Urfågeln: en liten befjädrad dinosaurie som visar släktskapet mellan dinosaurier och fåglar.'],
+['Saint Kitts och Nevis','Det minsta självständiga landet i hela Amerika, både till yta och folkmängd.'],
+['Tallkottkörtel','En körtel stor som en ärta mitt i hjärnan. Den tillverkar sömnhormonet melatonin.'],
+['Ull','Skidornas och bågskyttets gud. Han har gett namn åt platser som Ullevi och Ulleråker.'],
+['Hornavan','Sveriges djupaste sjö, 221 meter. Passande nog för ett spel om djup.'],
+['Faluröd','Färgen på Sveriges röda stugor, gjord på pigment ur Falu koppargruva. Det är den som sitter på laven här i spelet.'],
+['Nauru','Världens minsta örike, och en republik som saknar officiell huvudstad.'],
+['Mal','Sveriges största sötvattensfisk, som kan bli över två meter. Den är fridlyst och finns bara i några få vatten, som Emån och Båven.'],
+['Pomerans','Torkat skal av bitter apelsin. Det smaksätter glögg, vörtbröd och pepparkakor.']
+];
+BANK.forEach((q,i)=>{q.y=YT[i];q.a=[];for(const p in q.t)q.t[p].forEach(e=>{const n=typeof e==='string'?e:e[0],pts=+p===100&&n!==q.y[0]?85:+p;q.a.push([n,pts,...(typeof e==='string'?[]:e.slice(1))])})});
+
+const $=id=>document.getElementById(id);
+const norm=s=>s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]/g,'');
+function lev(a,b){const m=a.length,n=b.length;if(Math.abs(m-n)>2)return 9;let p=[...Array(n+1).keys()];
+  for(let i=1;i<=m;i++){const c=[i];for(let j=1;j<=n;j++)c[j]=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1));p=c}return p[n]}
+function match(q,raw){
+  const n=norm(raw); if(!n) return null;
+  for(const a of q.a){ if([a[0],...a.slice(2)].some(k=>norm(k)===n)) return a; }
+  if(n.length<6||/\d/.test(n)||/(^|\s)[ivx]+(\s|$)/i.test(raw.trim())) return null;
+  const lim=n.length>=10?2:1; let best=null,bd=9,tie=false;
+  for(const a of q.a){ const k=norm(a[0]); if(k.length<6) continue; const d=lev(n,k);
+    if(d<bd){bd=d;best=a;tie=false}else if(d===bd&&a!==best)tie=true }
+  return bd<=lim&&!tie?best:null;
+}
+function rng(seed){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function pick(rand){const idx=BANK.map((_,i)=>i);for(let i=idx.length-1;i>0;i--){const j=Math.floor(rand()*(i+1));[idx[i],idx[j]]=[idx[j],idx[i]]}return idx.slice(0,7)}
+/* the day follows Swedish time, so a new daily shaft opens at 00:00 in Sweden for everyone */
+let dayKey,dayLabel,dayNum,toMidnight;
+function setDay(){let y,m,d,sec;const n=new Date();
+  try{const p={};new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Stockholm',hourCycle:'h23',year:'numeric',month:'numeric',day:'numeric',hour:'numeric',minute:'numeric',second:'numeric'}).formatToParts(n).forEach(x=>p[x.type]=+x.value);
+    y=p.year;m=p.month;d=p.day;sec=p.hour*3600+p.minute*60+p.second;if(!y||!m||!d||isNaN(sec))throw 0}
+  catch(e){y=n.getFullYear();m=n.getMonth()+1;d=n.getDate();sec=n.getHours()*3600+n.getMinutes()*60+n.getSeconds()}
+  dayKey=y*10000+m*100+d;dayNum=Math.round(Date.UTC(y,m-1,d)/864e5);toMidnight=86400-sec;
+  dayLabel=new Date(Date.UTC(y,m-1,d,12)).toLocaleDateString('sv-SE',{day:'numeric',month:'short',timeZone:'UTC'})}
+setDay();
+/* the bank is shuffled once per cycle and dealt out seven a day, so no question comes back within the same cycle */
+function dailyIds(){const per=Math.floor(BANK.length/7),rand=rng(Math.floor(dayNum/per)*7919+13),idx=BANK.map((_,i)=>i);
+  for(let i=idx.length-1;i>0;i--){const j=Math.floor(rand()*(i+1));[idx[i],idx[j]]=[idx[j],idx[i]]}
+  const k=dayNum%per;return idx.slice(k*7,k*7+7)}
+function countdown(){const t=Math.max(0,toMidnight),z=v=>String(v).padStart(2,'0');return z(Math.floor(t/3600))+':'+z(Math.floor(t/60)%60)+':'+z(t%60)}
+const store={get(){try{return JSON.parse(localStorage.getItem('schaktet2')||'null')}catch(e){return null}},set(v){try{localStorage.setItem('schaktet2',JSON.stringify(v))}catch(e){}}};
+const fmt=n=>n.toLocaleString('sv-SE');
+const gem=p=>{const g=document.createElement('span');g.className='gem'+(p?' g'+p:'');return g};
+const zoneAt=m=>[...ZONES].reverse().find(z=>m>=z[0]);
+
+/* the world: sky and headframe on top, then 1 400 m of rock at 2 px per metre, painted in 4 px blocks. The camera follows the cage. */
+const PX=6,SURF=140,P=4,scene=$('scene'),still=matchMedia('(prefers-reduced-motion:reduce)').matches;
+const yOf=m=>121+m*PX;
+let cur=0,anim=0,rideTimer=0;
+function setCam(m,dur){const y=m*PX;scene.style.setProperty('--dur',dur+'s');scene.style.setProperty('--y',y);scene.style.setProperty('--cam',Math.max(0,121+y-150))}
+function ride(to,pts){
+  const from=cur,dist=Math.abs(to-from),dur=!dist?0:still?0:1.6+dist/200*3.4; cur=to; setCam(to,dur);
+  const id=++anim,t0=performance.now(),el=$('depth');
+  clearTimeout(rideTimer); scene.classList.remove('thud','riding');
+  if(!dur){el.textContent=fmt(to);return 0}
+  scene.classList.add('riding');
+  (function step(t){if(id!==anim)return;const k=Math.min(1,(t-t0)/(dur*1000)),e=k<.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;
+    el.textContent=fmt(Math.round(from+(to-from)*e));if(k<1)requestAnimationFrame(step)})(t0);
+  rideTimer=setTimeout(()=>{scene.classList.remove('riding');
+    if(pts){const t=tierOf(pts);$('flash').style.background='var(--'+t[3]+')';$('stamp').textContent=t[1]+'!';$('stamp').className='stamp c'+pts;
+      void scene.offsetWidth;scene.classList.add('thud')}},dur*1000);
+  return dur;
+}
+function drawWorld(){
+  const c=$('rock'),W=scene.clientWidth,H=SURF+BOTTOM*PX+Math.max(80,scene.clientHeight); if(!W)return;
+  c.width=Math.ceil(W/P);c.height=Math.ceil(H/P);c.style.height=H+'px';
+  const x=c.getContext('2d');x.scale(1/P,1/P);
+  const css=getComputedStyle(document.documentElement),col=v=>css.getPropertyValue('--'+v).trim();
+  const q=v=>Math.round(v/P)*P,R=(a,b,w,h,f)=>{x.fillStyle=f;x.fillRect(q(a),q(b),Math.max(P,q(w)),Math.max(P,q(h)))};
+  const r=rng(1877),cx=q(W/2),half=24,falu=col('falu'),knut=col('knut'),tak=col('tak'),lampa=col('lampa');
+  [[0,'#0F1830'],[44,'#18243F'],[88,'#263553'],[120,'#3E4D66']].forEach((b,i,a)=>R(0,b[0],W,(a[i+1]?a[i+1][0]:SURF)-b[0],b[1]));
+  for(let i=0;i<34;i++)R(r()*W,r()*92,P,P,knut);
+  R(W-76,28,24,16,knut);R(W-72,24,16,24,knut);
+  const hx=q(Math.max(20,cx-140));
+  for(let i=0;i<18;i++){const px=q(r()*W),rows=4+Math.floor(r()*4);if(Math.abs(px-cx)<52||(px>hx-16&&px<hx+56))continue;
+    for(let k=0;k<rows;k++)R(px-4*k,SURF-8-(rows-k)*8,8*k+4,8,'#16231B');R(px,SURF-8,4,8,tak)}
+  R(hx,SURF-20,36,20,falu);R(hx-4,SURF-24,44,4,tak);R(hx+4,SURF-28,28,4,tak);R(hx+12,SURF-32,12,4,tak);
+  R(hx,SURF-20,4,20,knut);R(hx+32,SURF-20,4,20,knut);R(hx+12,SURF-12,8,8,lampa);
+  R(cx-20,72,40,SURF-72,falu);R(cx-20,72,4,SURF-72,knut);R(cx+16,72,4,SURF-72,knut);R(cx-20,100,40,4,knut);
+  R(cx-28,68,56,4,tak);R(cx-20,64,40,4,tak);R(cx-12,60,24,4,tak);R(cx-4,56,8,4,tak);
+  R(cx-8,80,16,12,knut);R(cx-4,84,8,4,lampa);
+  const bands=70,bh=(H-SURF)/bands;
+  for(let i=0;i<bands;i++){const k=i/(bands-1),v=n=>Math.round(n[0]+(n[1]-n[0])*k);
+    R(0,SURF+i*bh,W,bh+P,'rgb('+v([66,13])+','+v([71,14])+','+v([78,17])+')')}
+  R(0,SURF,W,8,col('mossa'));for(let i=0;i<W/14;i++)R(r()*W,SURF-4,4,4,col('mossa'));
+  for(let i=0;i<W*H/300;i++)R(r()*W,SURF+8+r()*(H-SURF),r()<.4?8:4,4,r()<.5?'rgba(255,255,255,.06)':'rgba(0,0,0,.28)');
+  for(let i=0;i<H/2;i++){
+    const m=r()*BOTTOM,f=col(tierOf(zoneAt(m)[2])[3]),big=r()<.3;
+    const px=q(r()<.5?r()*(cx-half-16):cx+half+12+r()*(cx-half-16)),py=q(yOf(m)+12);
+    x.globalAlpha=.55+r()*.45;
+    if(big){R(px-4,py-4,12,12,f);R(px,py-8,4,20,f);R(px-8,py,20,4,f);x.globalAlpha=.7;R(px-4,py-4,4,4,'#fff')}
+    else{R(px,py-4,4,12,f);R(px-4,py,12,4,f)}
+  }
+  x.globalAlpha=1;
+  const end=yOf(BOTTOM)+20;
+  R(cx-half,SURF-24,half*2,end-SURF+24,'#07080A');
+  for(let y=SURF+12;y<end;y+=40)R(cx-half,y,half*2,4,'#4E3D29');
+  R(cx-half-4,SURF,4,end-SURF,'#4E3D29');R(cx+half,SURF,4,end-SURF,'#4E3D29');
+  R(cx-half-4,end,half*2+8,4,col('yttrium'));
+  for(let i=0;i<40;i++)R(cx-120+r()*240,end+4+r()*56,r()<.4?8:4,4,col('yttrium'));
+}
+const world=$('world');
+for(let m=25;m<=BOTTOM;m+=25){const d=document.createElement('div');d.className='mk';d.style.top=yOf(m)+'px';d.textContent='– '+m+' m';world.append(d)}
+ZONES.forEach(z=>{const d=document.createElement('div');d.className='zn c'+z[2];d.style.top=(z[0]?yOf(z[0]):176)+'px';d.textContent=tierName(z[2]);world.append(d)});
+if(window.ResizeObserver)new ResizeObserver(()=>{drawWorld();setCam(cur,0)}).observe(scene);else addEventListener('resize',drawWorld);
+drawWorld();setCam(0,0);
+
+/* free rounds draw from a shuffled deck that refills itself, so there is always another one and no question repeats until all are used */
+function freeDeck(){
+  let d=[];try{d=JSON.parse(localStorage.getItem('schaktetDeck')||'[]')}catch(e){}
+  d=Array.isArray(d)?[...new Set(d)].filter(i=>BANK[i]):[];
+  if(d.length<7){const rest=BANK.map((_,i)=>i).filter(i=>!d.includes(i));
+    for(let i=rest.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[rest[i],rest[j]]=[rest[j],rest[i]]}d=d.concat(rest)}
+  const ids=d.slice(0,7);try{localStorage.setItem('schaktetDeck',JSON.stringify(d.slice(7)))}catch(e){}
+  return ids;
+}
+let S=null,tick=null;
+function show(id){['start','play','end'].forEach(v=>$(v).hidden=v!==id);$('clock').hidden=id!=='play';scrollTo(0,0)}
+function begin(mode){
+  S={mode,day:dayKey,ids:mode==='daily'?dailyIds():freeDeck(),i:0,res:[],depth:0};
+  anim++; clearTimeout(rideTimer); scene.classList.remove('riding','thud'); cur=0; setCam(0,0); $('depth').textContent='0'; show('play'); ask();
+}
+function cart(){ $('cart').replaceChildren(...Array.from({length:7},(_,i)=>gem(S.res[i]?S.res[i].pts:0))) }
+function ask(){
+  const q=BANK[S.ids[S.i]];
+  $('qn').textContent=S.i+1; $('question').textContent=q.q; cart();
+  $('fb').hidden=true; $('btnNext').hidden=true; $('form').hidden=false; $('miss').textContent=''; $('tried').replaceChildren();
+  const inp=$('answer'); inp.value=''; inp.focus();
+  const end=Date.now()+SECONDS*1000; clearInterval(tick);
+  tick=setInterval(()=>{const left=Math.max(0,end-Date.now());
+    $('arc').style.strokeDashoffset=169.65*(1-left/(SECONDS*1000)); $('secs').textContent=Math.ceil(left/1000);
+    $('clock').classList.toggle('low',left<7000);
+    if(left<=0) settle(null)},100);
+}
+function guess(raw){
+  const q=BANK[S.ids[S.i]], hit=match(q,raw);
+  if(hit) return settle(hit);
+  const inp=$('answer'); $('miss').textContent='Inget i berget där. Gissa igen, klockan går.';
+  const t=document.createElement('span'); t.textContent=raw.trim(); $('tried').append(t);
+  inp.value=''; inp.classList.remove('shake'); void inp.offsetWidth; inp.classList.add('shake'); inp.focus();
+}
+function settle(hit){
+  clearInterval(tick);
+  const round=S, q=BANK[S.ids[S.i]], pts=hit?hit[1]:0;
+  S.depth+=pts*M; S.res.push({q:S.ids[S.i],ans:hit?hit[0]:'',pts});
+  cart(); $('form').hidden=true; $('miss').textContent=''; $('tried').replaceChildren(); $('answer').blur();
+  const dur=ride(S.depth,pts);
+  setTimeout(()=>{ if(S!==round) return;
+    const sorted=[...q.a].sort((x,y)=>y[1]-x[1]);
+    const common=sorted[sorted.length-1][0];
+    const fb=$('fb'); fb.replaceChildren(); fb.style.borderLeftColor=hit?'var(--'+tierOf(pts)[3]+')':'var(--kant)';
+    const gain=document.createElement('div'); gain.className='gain'+(hit?' c'+pts:'');
+    gain.append((hit?'−'+pts*M:'0')+' m'); const lab=document.createElement('span'); lab.textContent=hit?tierName(pts):'Hissen står still'; gain.append(lab);
+    const p1=document.createElement('p');
+    if(hit){p1.innerHTML='Du hittade <b></b>.';p1.querySelector('b').textContent=hit[0]} else p1.textContent='Tiden tog slut innan du hittade något.';
+    const p2=document.createElement('p'),yb=document.createElement('b'); yb.className='c100'; yb.textContent=q.y[0];
+    if(pts===100) p2.append('Det var frågans enda yttriumsvar. '+q.y[1]); else p2.append('Yttriumsvaret var ',yb,'. '+q.y[1]);
+    const p3=document.createElement('p'); p3.innerHTML='Närmast ytan: <b></b>.'; p3.querySelector('b').textContent=common;
+    fb.append(gain,p1,p2,p3); fb.hidden=false;
+    const nx=$('btnNext'); nx.textContent=S.i===6?'Se hur djupt du kom':'Nästa fråga'; nx.hidden=false; nx.focus({preventScroll:true});
+  },dur*1000+(dur?350:0));
+}
+function finish(){ if(S.mode==='daily') store.set({day:S.day,res:S.res,depth:S.depth}); refreshDaily(); renderEnd(S.mode,S.res,S.depth) }
+function renderEnd(mode,res,depth){
+  show('end'); ride(depth);
+  $('endLabel').textContent=mode==='daily'?'Dagens schakt · '+dayLabel:'Fritt schakt';
+  $('total').textContent=fmt(depth);
+  $('zoneText').textContent=depth>=BOTTOM?'Du nådde schaktets botten. Djupare går det inte.':
+    depth===0?'Hissen lämnade aldrig marknivån.':'Du stannade i '+zoneAt(depth)[1]+', '+fmt(BOTTOM-depth)+' meter från botten.';
+  const ul=$('recap'); ul.replaceChildren();
+  res.forEach(r=>{const li=document.createElement('li');
+    const q=document.createElement('span');q.className='q';q.textContent=BANK[r.q].q;
+    const a=document.createElement('span');a.textContent=r.pts?r.ans+' · '+tierName(r.pts):'Inget fynd';
+    const p=document.createElement('span');p.className='p';p.textContent=r.pts?'−'+r.pts*M+' m':'0 m';
+    const det=document.createElement('details'),sum=document.createElement('summary');sum.textContent='Visa alla '+BANK[r.q].a.length+' svar';det.append(sum);
+    [...TIERS].reverse().forEach(t=>{const names=BANK[r.q].a.filter(x=>x[1]===t[0]).map(x=>x[0]);if(!names.length)return;
+      const row=document.createElement('div');row.className='tier';const h=document.createElement('span');h.className='th c'+t[0];h.textContent=t[1]+' · '+t[0]*M+' m';
+      const l=document.createElement('span');l.textContent=names.join(', ');row.append(h,l);
+      if(t[0]===100){const w=document.createElement('span');w.className='why';w.textContent=BANK[r.q].y[1];row.append(w)}
+      det.append(row)});
+    li.append(q,gem(r.pts),a,p,det);ul.append(li)});
+  $('endNote').textContent=mode==='daily'?'Ett nytt dagligt schakt öppnar klockan 00:00. Fritt schakt kan du köra direkt, hur många gånger du vill.':'Kör ett fritt schakt till: nya frågor varje gång tills alla är använda.';
+  $('btnCopy').textContent='Kopiera resultat';
+  $('btnCopy').onclick=()=>{
+    const txt='Schaktet '+(mode==='daily'?dayLabel:'fritt schakt')+': '+fmt(depth)+' m av 1 400\n'+res.map(r=>r.pts?tierName(r.pts):'–').join(' · ');
+    const fail=()=>{$('endNote').textContent=txt};
+    try{navigator.clipboard.writeText(txt).then(()=>$('btnCopy').textContent='Kopierat',fail)}catch(e){fail()}
+  };
+}
+
+$('ores').append(...[...TIERS].reverse().map(t=>{const li=document.createElement('li');
+  const n=document.createElement('span');n.className='n';n.innerHTML=t[1]+'<small>'+t[2]+'</small>';
+  const m=document.createElement('span');m.className='m c'+t[0];m.textContent='−'+t[0]*M+' m';
+  li.append(gem(t[0]),n,m);return li}));
+$('meta').textContent=dayLabel;
+$('form').addEventListener('submit',e=>{e.preventDefault();const v=$('answer').value;if(v.trim())guess(v)});
+$('btnNext').onclick=()=>{S.i++;S.i>6?finish():ask()};
+$('btnFree').onclick=$('btnAgain').onclick=()=>begin('free');
+function playedToday(){const s=store.get();return s&&s.day===dayKey&&Array.isArray(s.res)&&s.res.every(r=>BANK[r.q])?s:null}
+function refreshDaily(){const s=playedToday();$('meta').textContent=dayLabel;
+  $('btnDaily').textContent=s?'Visa dagens resultat':'Dagens schakt';
+  $('startNote').textContent=s?'Du har redan kört dagens schakt och nådde '+fmt(s.depth)+' meter. Fritt schakt slumpar nya frågor.':'Dagens schakt har samma sju frågor för alla. Varje fråga har ett enda yttriumsvar, och efteråt får du veta varför. Botten ligger på 1 400 meter.';
+  $('btnEndDaily').hidden=!!s}
+function tickDay(){const k=dayKey;setDay();if(k!==dayKey)refreshDaily();
+  const t='Nytt dagligt schakt om '+countdown();$('nextA').textContent=t;$('nextB').textContent=t}
+$('btnDaily').onclick=()=>{const s=playedToday();s?renderEnd('daily',s.res,s.depth):begin('daily')};
+$('btnEndDaily').onclick=()=>begin('daily');
+refreshDaily();tickDay();setInterval(tickDay,1000);
+</script>
+</body>
+</html>
